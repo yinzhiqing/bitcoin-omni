@@ -17,7 +17,7 @@ class CTransaction;
 #include <univalue.h>
 
 #include <stdint.h>
-
+#include "chain.h"
 #include <script/standard.h>
 #include <map>
 #include <string>
@@ -154,7 +154,7 @@ int mastercore_shutdown();
 /** Block and transaction handlers. */
 int mastercore_handler_disc_begin(int nBlockNow, CBlockIndex const * pBlockIndex);
 int mastercore_handler_disc_end(int nBlockNow, CBlockIndex const * pBlockIndex);
-int mastercore_handler_block_begin(int nBlockNow, CBlockIndex const * pBlockIndex);
+int mastercore_handler_block_begin(int nBlockNow, CBlockIndex * pBlockIndex);
 int mastercore_handler_block_end(int nBlockNow, CBlockIndex const * pBlockIndex, unsigned int);
 bool mastercore_handler_tx(const CTransaction& tx, int nBlock, unsigned int idx, const CBlockIndex* pBlockIndex);
 

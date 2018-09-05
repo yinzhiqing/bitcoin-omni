@@ -1024,9 +1024,10 @@ omnicore/libbitcoin_server_a-dbspinfo.o: omnicore/dbspinfo.cpp \
  /usr/include/boost/smart_ptr/enable_shared_from_this.hpp \
  omnicore/omnicore.h omnicore/tally.h uint256.h crypto/common.h \
  compat/endian.h compat/byteswap.h /usr/include/byteswap.h \
- univalue/include/univalue.h script/standard.h script/interpreter.h \
- script/script_error.h primitives/transaction.h amount.h script/script.h \
- prevector.h serialize.h span.h /usr/include/boost/variant.hpp \
+ univalue/include/univalue.h chain.h arith_uint256.h consensus/params.h \
+ primitives/block.h primitives/transaction.h amount.h script/script.h \
+ prevector.h serialize.h span.h script/standard.h script/interpreter.h \
+ script/script_error.h /usr/include/boost/variant.hpp \
  /usr/include/boost/variant/recursive_variant.hpp \
  /usr/include/boost/variant/detail/enable_recursive.hpp \
  /usr/include/boost/variant/detail/substitute.hpp \
@@ -1039,10 +1040,9 @@ omnicore/libbitcoin_server_a-dbspinfo.o: omnicore/dbspinfo.cpp \
  /usr/include/c++/5/unordered_map /usr/include/c++/5/bits/unordered_map.h \
  base58.h clientversion.h streams.h support/allocators/zeroafterfree.h \
  support/cleanse.h leveldb/include/leveldb/write_batch.h key_io.h \
- chainparams.h chainparamsbase.h consensus/params.h primitives/block.h \
- protocol.h netaddress.h version.h key.h pubkey.h hash.h \
- crypto/ripemd160.h crypto/sha256.h support/allocators/secure.h \
- support/lockedpool.h
+ chainparams.h chainparamsbase.h protocol.h netaddress.h version.h key.h \
+ pubkey.h hash.h crypto/ripemd160.h crypto/sha256.h \
+ support/allocators/secure.h support/lockedpool.h
 
 /usr/include/stdc-predef.h:
 
@@ -3374,11 +3374,13 @@ compat/byteswap.h:
 
 univalue/include/univalue.h:
 
-script/standard.h:
+chain.h:
 
-script/interpreter.h:
+arith_uint256.h:
 
-script/script_error.h:
+consensus/params.h:
+
+primitives/block.h:
 
 primitives/transaction.h:
 
@@ -3391,6 +3393,12 @@ prevector.h:
 serialize.h:
 
 span.h:
+
+script/standard.h:
+
+script/interpreter.h:
+
+script/script_error.h:
 
 /usr/include/boost/variant.hpp:
 
@@ -3435,10 +3443,6 @@ key_io.h:
 chainparams.h:
 
 chainparamsbase.h:
-
-consensus/params.h:
-
-primitives/block.h:
 
 protocol.h:
 

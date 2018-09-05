@@ -1020,9 +1020,10 @@ omnicore/libbitcoin_server_a-dex.o: omnicore/dex.cpp \
  /usr/include/boost/smart_ptr/enable_shared_from_this.hpp \
  omnicore/omnicore.h omnicore/tally.h uint256.h crypto/common.h \
  compat/endian.h compat/byteswap.h /usr/include/byteswap.h \
- univalue/include/univalue.h script/standard.h script/interpreter.h \
- script/script_error.h primitives/transaction.h amount.h script/script.h \
- prevector.h serialize.h span.h /usr/include/boost/variant.hpp \
+ univalue/include/univalue.h chain.h arith_uint256.h consensus/params.h \
+ primitives/block.h primitives/transaction.h amount.h script/script.h \
+ prevector.h serialize.h span.h script/standard.h script/interpreter.h \
+ script/script_error.h /usr/include/boost/variant.hpp \
  /usr/include/boost/variant/recursive_variant.hpp \
  /usr/include/boost/variant/detail/enable_recursive.hpp \
  /usr/include/boost/variant/detail/substitute.hpp \
@@ -1040,7 +1041,7 @@ omnicore/libbitcoin_server_a-dex.o: omnicore/dex.cpp \
  leveldb/include/leveldb/iterator.h leveldb/include/leveldb/slice.h \
  leveldb/include/leveldb/status.h leveldb/include/leveldb/options.h \
  omnicore/errors.h omnicore/rules.h omnicore/uint256_extensions.h \
- arith_uint256.h /usr/include/boost/algorithm/string.hpp \
+ /usr/include/boost/algorithm/string.hpp \
  /usr/include/boost/algorithm/string/std_containers_traits.hpp \
  /usr/include/boost/algorithm/string/std/string_traits.hpp \
  /usr/include/boost/algorithm/string/yes_no_type.hpp \
@@ -3474,11 +3475,13 @@ compat/byteswap.h:
 
 univalue/include/univalue.h:
 
-script/standard.h:
+chain.h:
 
-script/interpreter.h:
+arith_uint256.h:
 
-script/script_error.h:
+consensus/params.h:
+
+primitives/block.h:
 
 primitives/transaction.h:
 
@@ -3491,6 +3494,12 @@ prevector.h:
 serialize.h:
 
 span.h:
+
+script/standard.h:
+
+script/interpreter.h:
+
+script/script_error.h:
 
 /usr/include/boost/variant.hpp:
 
@@ -3551,8 +3560,6 @@ omnicore/errors.h:
 omnicore/rules.h:
 
 omnicore/uint256_extensions.h:
-
-arith_uint256.h:
 
 /usr/include/boost/algorithm/string.hpp:
 

@@ -1022,10 +1022,11 @@ omnicore/libbitcoin_server_a-consensushash.o: omnicore/consensushash.cpp \
  /usr/include/boost/thread/cv_status.hpp \
  /usr/include/boost/enable_shared_from_this.hpp \
  /usr/include/boost/smart_ptr/enable_shared_from_this.hpp \
- omnicore/omnicore.h omnicore/tally.h univalue/include/univalue.h \
- script/standard.h script/interpreter.h script/script_error.h \
+ omnicore/omnicore.h omnicore/tally.h univalue/include/univalue.h chain.h \
+ arith_uint256.h consensus/params.h primitives/block.h \
  primitives/transaction.h amount.h script/script.h prevector.h \
- serialize.h span.h /usr/include/boost/variant.hpp \
+ serialize.h span.h script/standard.h script/interpreter.h \
+ script/script_error.h /usr/include/boost/variant.hpp \
  /usr/include/boost/variant/recursive_variant.hpp \
  /usr/include/boost/variant/detail/enable_recursive.hpp \
  /usr/include/boost/variant/detail/substitute.hpp \
@@ -1258,7 +1259,7 @@ omnicore/libbitcoin_server_a-consensushash.o: omnicore/consensushash.cpp \
  /usr/include/boost/multiprecision/cpp_int/limits.hpp \
  /usr/include/boost/multiprecision/cpp_int/literals.hpp \
  /usr/include/boost/multiprecision/cpp_int/serialize.hpp \
- omnicore/parse_string.h omnicore/sp.h arith_uint256.h
+ omnicore/parse_string.h omnicore/sp.h
 
 /usr/include/stdc-predef.h:
 
@@ -3592,11 +3593,13 @@ omnicore/tally.h:
 
 univalue/include/univalue.h:
 
-script/standard.h:
+chain.h:
 
-script/interpreter.h:
+arith_uint256.h:
 
-script/script_error.h:
+consensus/params.h:
+
+primitives/block.h:
 
 primitives/transaction.h:
 
@@ -3609,6 +3612,12 @@ prevector.h:
 serialize.h:
 
 span.h:
+
+script/standard.h:
+
+script/interpreter.h:
+
+script/script_error.h:
 
 /usr/include/boost/variant.hpp:
 
@@ -4111,5 +4120,3 @@ omnicore/mdex.h:
 omnicore/parse_string.h:
 
 omnicore/sp.h:
-
-arith_uint256.h:

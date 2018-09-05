@@ -1025,10 +1025,11 @@ omnicore/libbitcoin_server_a-dbtradelist.o: omnicore/dbtradelist.cpp \
  /usr/include/boost/thread/cv_status.hpp \
  /usr/include/boost/enable_shared_from_this.hpp \
  /usr/include/boost/smart_ptr/enable_shared_from_this.hpp omnicore/mdex.h \
- omnicore/tx.h omnicore/omnicore.h omnicore/tally.h script/standard.h \
- script/interpreter.h script/script_error.h primitives/transaction.h \
- amount.h script/script.h prevector.h serialize.h span.h \
- /usr/include/boost/variant.hpp \
+ omnicore/tx.h omnicore/omnicore.h omnicore/tally.h chain.h \
+ arith_uint256.h consensus/params.h primitives/block.h \
+ primitives/transaction.h amount.h script/script.h prevector.h \
+ serialize.h span.h script/standard.h script/interpreter.h \
+ script/script_error.h /usr/include/boost/variant.hpp \
  /usr/include/boost/variant/recursive_variant.hpp \
  /usr/include/boost/variant/detail/enable_recursive.hpp \
  /usr/include/boost/variant/detail/substitute.hpp \
@@ -3644,11 +3645,13 @@ omnicore/omnicore.h:
 
 omnicore/tally.h:
 
-script/standard.h:
+chain.h:
 
-script/interpreter.h:
+arith_uint256.h:
 
-script/script_error.h:
+consensus/params.h:
+
+primitives/block.h:
 
 primitives/transaction.h:
 
@@ -3661,6 +3664,12 @@ prevector.h:
 serialize.h:
 
 span.h:
+
+script/standard.h:
+
+script/interpreter.h:
+
+script/script_error.h:
 
 /usr/include/boost/variant.hpp:
 

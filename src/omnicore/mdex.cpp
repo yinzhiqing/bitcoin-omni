@@ -13,7 +13,6 @@
 
 #include "arith_uint256.h"
 #include "chain.h"
-#include "main.h"
 #include "tinyformat.h"
 #include "uint256.h"
 
@@ -36,10 +35,12 @@
 typedef boost::multiprecision::cpp_dec_float_100 dec_float;
 typedef boost::multiprecision::checked_int128_t int128_t;
 
+
 using namespace mastercore;
 
 //! Number of digits of unit price
 #define DISPLAY_PRECISION_LEN  50
+extern CChain& chainActive ;
 
 //! Global map for price and order data
 md_PropertiesMap mastercore::metadex;

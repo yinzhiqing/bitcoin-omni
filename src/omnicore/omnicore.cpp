@@ -1,5 +1,5 @@
-/**
- * @file omnicore.cpp
+
+ /* file omnicore.cpp
  *
  * This file contains the core of Omni Core.
  */
@@ -39,11 +39,11 @@
 
 #include "base58.h"
 #include "chainparams.h"
-#include "coincontrol.h"
+#include "chain.h"
+#include "wallet/coincontrol.h"
 #include "coins.h"
 #include "core_io.h"
 #include "init.h"
-#include "main.h"
 #include "primitives/block.h"
 #include "primitives/transaction.h"
 #include "script/script.h"
@@ -55,6 +55,10 @@
 #include "util.h"
 #include "utilstrencodings.h"
 #include "utiltime.h"
+#include "logging.h"
+#include <validation.h>
+#include "shutdown.h"
+
 #ifdef ENABLE_WALLET
 #include "script/ismine.h"
 #include "wallet/wallet.h"
@@ -88,6 +92,9 @@ using namespace mastercore;
 
 //! Global lock for state objects
 CCriticalSection cs_tally;
+extern  CChain& chainActive;
+extern bool AbortNode(const std::string& strMessage, const std::string& userMessage="");
+extern bool AbortNode(CValidationState& state, const std::string& strMessage, const std::string& userMessage="");
 
 //! Exodus address (changes based on network)
 static std::string exodus_address = "1EXoDusjGwvnjZUyKkxZ4UHEf77z6A5S4P";
@@ -599,7 +606,7 @@ void NotifyTotalTokensChanged(uint32_t propertyId, int block)
 void CheckWalletUpdate(bool forceUpdate)
 {
 #ifdef ENABLE_WALLET
-    if (!pwalletMain) {
+    if (!HasWallets()) {
         return;
     }
 #endif
@@ -805,7 +812,7 @@ static unsigned int nCacheMiss = 0;
  */
 static bool FillTxInputCache(const CTransaction& tx)
 {
-    static unsigned int nCacheSize = GetArg("-omnitxcache", 500000);
+    static unsigned int nCacheSize = gArgs.GetArg("-omnitxcache", 500000);
 
     if (view.GetCacheSize() > nCacheSize) {
         PrintToLog("%s(): clearing cache before insertion [size=%d, hit=%d, miss=%d]\n",
@@ -816,26 +823,24 @@ static bool FillTxInputCache(const CTransaction& tx)
     for (std::vector<CTxIn>::const_iterator it = tx.vin.begin(); it != tx.vin.end(); ++it) {
         const CTxIn& txIn = *it;
         unsigned int nOut = txIn.prevout.n;
-        CCoinsModifier coins = view.ModifyCoins(txIn.prevout.hash);
+       // CCoinsModifier coins = view.ModifyCoins(txIn.prevout.hash);
 
-        if (coins->IsAvailable(nOut)) {
+       if(view.HaveCoinInCache(txIn.prevout)) {
             ++nCacheHits;
             continue;
         } else {
             ++nCacheMiss;
         }
 
-        CTransaction txPrev;
+        CTransactionRef txPrev;
         uint256 hashBlock;
         if (!GetTransaction(txIn.prevout.hash, txPrev, Params().GetConsensus(), hashBlock, true)) {
             return false;
         }
 
-        if (nOut >= coins->vout.size()) {
-            coins->vout.resize(nOut+1);
-        }
-        coins->vout[nOut].scriptPubKey = txPrev.vout[nOut].scriptPubKey;
-        coins->vout[nOut].nValue = txPrev.vout[nOut].nValue;
+		//jg
+
+		//view.AddCoin(txIn.prevout, std::move(Coin(txIn.prevout, 1, false)), true);
     }
 
     return true;
@@ -861,7 +866,7 @@ static int parseTransaction(bool bRPConly, const CTransaction& wtx, int nBlock, 
 
     if (!bRPConly || msc_debug_parser_readonly) {
         PrintToLog("____________________________________________________________________________________________________________________________________\n");
-        PrintToLog("%s(block=%d, %s idx= %d); txid: %s\n", __FUNCTION__, nBlock, DateTimeStrFormat("%Y-%m-%d %H:%M:%S", nTime), idx, wtx.GetHash().GetHex());
+        LogPrintf("%s(block=%d, %d idx= %d); txid: %s\n", __FUNCTION__, nBlock,  nTime, idx, wtx.GetHash().GetHex());
     }
 
     // ### SENDER IDENTIFICATION ###
@@ -888,7 +893,10 @@ static int parseTransaction(bool bRPConly, const CTransaction& wtx, int nBlock, 
             if (msc_debug_vin) PrintToLog("vin=%d:%s\n", i, ScriptToAsmStr(wtx.vin[i].scriptSig));
 
             const CTxIn& txIn = wtx.vin[i];
-            const CTxOut& txOut = view.GetOutputFor(txIn);
+            Coin coin;
+			view.GetCoin(txIn.prevout, coin);
+
+            const CTxOut& txOut = coin.out;
 
             assert(!txOut.IsNull());
 
@@ -927,7 +935,9 @@ static int parseTransaction(bool bRPConly, const CTransaction& wtx, int nBlock, 
             if (msc_debug_vin) PrintToLog("vin=%d:%s\n", vin_n, ScriptToAsmStr(wtx.vin[vin_n].scriptSig));
 
             const CTxIn& txIn = wtx.vin[vin_n];
-            const CTxOut& txOut = view.GetOutputFor(txIn);
+            Coin coin;
+			view.GetCoin(txIn.prevout, coin);
+            const CTxOut& txOut = coin.out;
 
             assert(!txOut.IsNull());
 
@@ -983,9 +993,9 @@ static int parseTransaction(bool bRPConly, const CTransaction& wtx, int nBlock, 
             if (!(dest == ExodusAddress())) {
                 // saving for Class A processing or reference
                 GetScriptPushes(wtx.vout[n].scriptPubKey, script_data);
-                address_data.push_back(address.ToString());
+                address_data.push_back(EncodeDestination(dest));
                 value_data.push_back(wtx.vout[n].nValue);
-                if (msc_debug_parser_data) PrintToLog("saving address_data #%d: %s:%s\n", n, address.ToString(), ScriptToAsmStr(wtx.vout[n].scriptPubKey));
+                if (msc_debug_parser_data) PrintToLog("saving address_data #%d: %s:%s\n", n, EncodeDestination(dest), ScriptToAsmStr(wtx.vout[n].scriptPubKey));
             }
         }
     }
@@ -1131,7 +1141,7 @@ static int parseTransaction(bool bRPConly, const CTransaction& wtx, int nBlock, 
                 if (whichType == TX_MULTISIG) {
                     if (msc_debug_script) {
                         PrintToLog(" >> multisig: ");
-                        BOOST_FOREACH(const CTxDestination& dest, vDest) {
+                        for (const CTxDestination& dest : vDest) {
                             //PrintToLog("%s ; ", CBitcoinAddress(dest).ToString());
                             PrintToLog("%s ; ", EncodeDestination(dest));
                         }
@@ -1178,7 +1188,8 @@ static int parseTransaction(bool bRPConly, const CTransaction& wtx, int nBlock, 
                 if (msc_debug_parser_data) {
                     CPubKey key(ParseHex(multisig_script_data[k]));
                     CKeyID keyID = key.GetID();
-                    std::string strAddress = CBitcoinAddress(keyID).ToString();
+					//jg
+                    std::string strAddress = EncodeDestination(GetDestinationForKey(key, OutputType::P2SH_SEGWIT));
                     PrintToLog("multisig_data[%d]:%s: %s\n", k, multisig_script_data[k], strAddress);
                 }
                 if (msc_debug_parser) {
@@ -1330,7 +1341,7 @@ static bool HandleExodusPurchase(const CTransaction& tx, int nBlock, const std::
     int64_t amountInvested = 0;
 
     for (unsigned int n = 0; n < tx.vout.size(); ++n) {
-        //CTxDestination dest;
+        CTxDestination dest;
         if (ExtractDestination(tx.vout[n].scriptPubKey, dest)) {
             if (dest == ExodusCrowdsaleAddress(nBlock)) {
                 amountInvested = tx.vout[n].nValue;
@@ -1442,7 +1453,7 @@ public:
  */
 static int msc_initial_scan(int nFirstBlock)
 {
-    int nTimeBetweenProgressReports = GetArg("-omniprogressfrequency", 30);  // seconds
+    int nTimeBetweenProgressReports = gArgs.GetArg("-omniprogressfrequency", 30);  // seconds
     int64_t nNow = GetTime();
     unsigned int nTxsTotal = 0;
     unsigned int nTxsFoundTotal = 0;
@@ -1457,7 +1468,7 @@ static int msc_initial_scan(int nFirstBlock)
     ProgressReporter progressReporter(chainActive[nFirstBlock], chainActive[nLastBlock]);
 
     // check if using seed block filter should be disabled
-    bool seedBlockFilterEnabled = GetBoolArg("-omniseedblockfilter", true);
+    bool seedBlockFilterEnabled = gArgs.GetBoolArg("-omniseedblockfilter", true);
 
     for (nBlock = nFirstBlock; nBlock <= nLastBlock; ++nBlock)
     {
@@ -1486,8 +1497,8 @@ static int msc_initial_scan(int nFirstBlock)
             CBlock block;
             if (!ReadBlockFromDisk(block, pblockindex, Params().GetConsensus())) break;
 
-            BOOST_FOREACH(const CTransaction&tx, block.vtx) {
-                if (mastercore_handler_tx(tx, nBlock, nTxNum, pblockindex)) ++nTxsFoundInBlock;
+            for (CTransactionRef tx : block.vtx) {
+                if (mastercore_handler_tx(*tx, nBlock, nTxNum, pblockindex)) ++nTxsFoundInBlock;
                 ++nTxNum;
             }
         }
@@ -1590,10 +1601,10 @@ int mastercore_init()
         return 0;
     }
 
-    PrintToConsole("Initializing Omni Core v%s [%s]\n", OmniCoreVersion(), Params().NetworkIDString());
+    LogPrintf("Initializing Omni Core v%s [%s]\n", OmniCoreVersion(), Params().NetworkIDString());
 
-    PrintToLog("\nInitializing Omni Core v%s [%s]\n", OmniCoreVersion(), Params().NetworkIDString());
-    PrintToLog("Startup time: %s\n", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()));
+    LogPrintf("\nInitializing Omni Core v%s [%s]\n", OmniCoreVersion(), Params().NetworkIDString());
+    LogPrintf("Startup time: %d\n", GetTime());
 
     InitDebugLogLevels();
     ShrinkDebugLog();
@@ -1603,7 +1614,7 @@ int mastercore_init()
     }
 
     // check for --autocommit option and set transaction commit flag accordingly
-    if (!GetBoolArg("-autocommit", true)) {
+    if (!gArgs.GetBoolArg("-autocommit", true)) {
         PrintToLog("Process was started with --autocommit set to false. "
                 "Created Omni transactions will not be committed to wallet or broadcast.\n");
         autoCommit = false;
@@ -1611,7 +1622,7 @@ int mastercore_init()
 
     // check for --startclean option and delete MP_ folders if present
     bool startClean = false;
-    if (GetBoolArg("-startclean", false)) {
+    if (gArgs.GetBoolArg("-startclean", false)) {
         PrintToLog("Process was started with --startclean option, attempting to clear persistence files..\n");
         try {
             boost::filesystem::path persistPath = GetDataDir() / "MP_persist";
@@ -1647,7 +1658,7 @@ int mastercore_init()
     p_feehistory = new COmniFeeHistory(GetDataDir() / "OMNI_feehistory", fReindex);
 
     MPPersistencePath = GetDataDir() / "MP_persist";
-    TryCreateDirectory(MPPersistencePath);
+    TryCreateDirectories(MPPersistencePath);
 
     bool wrongDBVersion = (p_txlistdb->getDBVersion() != DB_VERSION);
 
@@ -1710,7 +1721,7 @@ int mastercore_init()
     if (!p_txlistdb->LoadFreezeState(nWaterlineBlock)) {
         std::string strShutdownReason = "Failed to load freeze state from levelDB.  It is unsafe to continue.\n";
         PrintToLog(strShutdownReason);
-        if (!GetBoolArg("-overrideforcedshutdown", false)) {
+        if (!gArgs.GetBoolArg("-overrideforcedshutdown", false)) {
             AbortNode(strShutdownReason, strShutdownReason);
         }
     }
@@ -1770,10 +1781,10 @@ int mastercore_shutdown()
 
     mastercoreInitialized = 0;
 
-    PrintToLog("\nOmni Core shutdown completed\n");
-    PrintToLog("Shutdown time: %s\n", DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime()));
+    LogPrintf("\nOmni Core shutdown completed\n");
+    LogPrintf("Shutdown time: %d\n", GetTime());
 
-    PrintToConsole("Omni Core shutdown completed\n");
+    LogPrintf("Omni Core shutdown completed\n");
 
     return 0;
 }
@@ -1856,7 +1867,7 @@ bool mastercore_handler_tx(const CTransaction& tx, int nBlock, unsigned int idx,
 bool mastercore::UseEncodingClassC(size_t nDataSize)
 {
     size_t nTotalSize = nDataSize + GetOmMarker().size(); // Marker "omni"
-    bool fDataEnabled = GetBoolArg("-datacarrier", true);
+    bool fDataEnabled = gArgs.GetBoolArg("-datacarrier", true);
     int nBlockNow = GetHeight();
     if (!IsAllowedOutputType(TX_NULL_DATA, nBlockNow)) {
         fDataEnabled = false;
@@ -1864,7 +1875,7 @@ bool mastercore::UseEncodingClassC(size_t nDataSize)
     return nTotalSize <= nMaxDatacarrierBytes && fDataEnabled;
 }
 
-int mastercore_handler_block_begin(int nBlockPrev, CBlockIndex const * pBlockIndex)
+int mastercore_handler_block_begin(int nBlockPrev, CBlockIndex * pBlockIndex)
 {
     LOCK(cs_tally);
 
@@ -1884,7 +1895,7 @@ int mastercore_handler_block_begin(int nBlockPrev, CBlockIndex const * pBlockInd
 // called once per block, after the block has been processed
 // TODO: consolidate into *handler_block_begin() << need to adjust Accept expiry check.............
 // it performs cleanup and other functions
-int mastercore_handler_block_end(int nBlockNow, CBlockIndex const * pBlockIndex,
+int mastercore_handler_block_end(int nBlockNow, CBlockIndex * pBlockIndex,
         unsigned int countMP)
 {
     LOCK(cs_tally);
@@ -1938,7 +1949,7 @@ int mastercore_handler_block_end(int nBlockNow, CBlockIndex const * pBlockIndex,
                 "Please restart with -startclean flag and if this doesn't work, please reach out to the support.\n",
                 nBlockNow, pBlockIndex->GetBlockHash().GetHex());
         PrintToLog(msg);
-        if (!GetBoolArg("-overrideforcedshutdown", false)) {
+        if (!gArgs.GetBoolArg("-overrideforcedshutdown", false)) {
             boost::filesystem::path persistPath = GetDataDir() / "MP_persist";
             if (boost::filesystem::exists(persistPath)) boost::filesystem::remove_all(persistPath); // prevent the node being restarted without a reparse after forced shutdown
             AbortNode(msg, msg);
@@ -2010,7 +2021,7 @@ const  CTxDestination  ExodusCrowdsaleAddress(int nBlock)
         return moneyAddress;
     }
     else if (MONEYMAN_REGTEST_BLOCK <= nBlock && RegTest()) {
-        static CTxDestination smoneyAddress = DecodeDestination(getmoney_testnet);
+        static CTxDestination moneyAddress = DecodeDestination(getmoney_testnet);
         return moneyAddress;
     }
 

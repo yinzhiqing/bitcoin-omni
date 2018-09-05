@@ -9,6 +9,7 @@
 #include <boost/thread/mutex.hpp>
 #include <boost/thread/once.hpp>
 
+#include <logging.h>
 #include <assert.h>
 #include <stdio.h>
 #include <atomic>
@@ -99,7 +100,7 @@ static boost::filesystem::path GetLogPath()
 
     if (!strLogPath.empty()) {
         pathLogFile = boost::filesystem::path(strLogPath);
-        TryCreateDirectory(pathLogFile.parent_path());
+        TryCreateDirectories(pathLogFile.parent_path());
     } else {
         pathLogFile = GetDataDir() / LOG_FILENAME;
     }
@@ -132,7 +133,7 @@ static void DebugLogInit()
  */
 static std::string GetTimestamp()
 {
-    return DateTimeStrFormat("%Y-%m-%d %H:%M:%S", GetTime());
+    return std::string("%Y-%m-%d %H:%M:%S");
 }
 
 /**
@@ -150,43 +151,8 @@ static std::string GetTimestamp()
 int LogFilePrint(const std::string& str)
 {
 
-	LogPrint(BCLog::OMNI, str);
+	//LogPrintf(BCLog::OMNI, str);
 	return 0;
-   /* int ret = 0; // Number of characters written  if (fPrintToConsole) {
-        // Print to console
-        ret = ConsolePrint(str);
-    }
-    else if (fPrintToDebugLog && AreBaseParamsConfigured()) {
-        static bool fStartedNewLine = true;
-        boost::call_once(&DebugLogInit, debugLogInitFlag);
-
-        if (fileout == NULL) {
-            return ret;
-        }
-        boost::mutex::scoped_lock scoped_lock(*mutexDebugLog);
-
-        // Reopen the log file, if requested
-        if (fReopenOmniCoreLog) {
-            fReopenOmniCoreLog = false;
-            boost::filesystem::path pathDebug = GetLogPath();
-            if (freopen(pathDebug.string().c_str(), "a", fileout) != NULL) {
-                setbuf(fileout, NULL); // Unbuffered
-            }
-        }
-
-        // Printing log timestamps can be useful for profiling
-        if (fLogTimestamps && fStartedNewLine) {
-            ret += fprintf(fileout, "%s ", GetTimestamp().c_str());
-        }
-        if (!str.empty() && str[str.size()-1] == '\n') {
-            fStartedNewLine = true;
-        } else {
-            fStartedNewLine = false;
-        }
-        ret += fwrite(str.data(), 1, str.size(), fileout);
-    }
-*/
-    return ret;
 }
 
 /**
@@ -201,21 +167,8 @@ int LogFilePrint(const std::string& str)
 int ConsolePrint(const std::string& str)
 {
     int ret = 0; // Number of characters written
-    static bool fStartedNewLine = true;
-
-    if (fLogTimestamps && fStartedNewLine) {
-        ret = fprintf(stdout, "%s %s", GetTimestamp().c_str(), str.c_str());
-    } else {
-        ret = fwrite(str.data(), 1, str.size(), stdout);
-    }
-    if (!str.empty() && str[str.size()-1] == '\n') {
-        fStartedNewLine = true;
-    } else {
-        fStartedNewLine = false;
-    }
-    fflush(stdout);
-
     return ret;
+	
 }
 
 /**
@@ -228,11 +181,11 @@ int ConsolePrint(const std::string& str)
  */
 void InitDebugLogLevels()
 {
-    if (!mapArgs.count("-omnidebug")) {
+    if (!gArgs.IsArgSet("-omnidebug")) {
         return;
     }
 
-    const std::vector<std::string>& debugLevels = mapMultiArgs["-omnidebug"];
+    const std::vector<std::string>& debugLevels = gArgs.GetArgs("-omnidebug");
 
     for (std::vector<std::string>::const_iterator it = debugLevels.begin(); it != debugLevels.end(); ++it) {
         if (*it == "parser_data") msc_debug_parser_data = true;
